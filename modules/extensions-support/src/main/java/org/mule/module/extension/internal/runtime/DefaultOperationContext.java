@@ -26,11 +26,6 @@ public final class DefaultOperationContext implements OperationContext
 {
 
     /**
-     * The configuration instance for this execution
-     */
-    private final Object configurationInstance;
-
-    /**
      * the values for each parameter
      */
     private final ResolverSetResult parameters;
@@ -45,18 +40,11 @@ public final class DefaultOperationContext implements OperationContext
      */
     private final List<ValueSetter> groupValueSetters;
 
-    public DefaultOperationContext(Object configurationInstance, ResolverSetResult parameters, MuleEvent event, List<ValueSetter> groupValueSetters)
+    public DefaultOperationContext(ResolverSetResult parameters, MuleEvent event, List<ValueSetter> groupValueSetters)
     {
-        this.configurationInstance = configurationInstance;
         this.parameters = parameters;
         this.event = event;
         this.groupValueSetters = groupValueSetters;
-    }
-
-    @Override
-    public Object getConfigurationInstance()
-    {
-        return configurationInstance;
     }
 
     @Override

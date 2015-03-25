@@ -19,6 +19,7 @@ import static org.mockito.Mockito.when;
 import org.mule.api.MuleEvent;
 import org.mule.extension.ExtensionManager;
 import org.mule.extension.introspection.Configuration;
+import org.mule.extension.introspection.Extension;
 import org.mule.module.extension.HeisenbergExtension;
 import org.mule.module.extension.internal.runtime.ConfigurationObjectBuilder;
 import org.mule.tck.junit4.AbstractMuleTestCase;
@@ -40,6 +41,9 @@ public class DynamicConfigurationValueResolverTestCase extends AbstractMuleTestC
 
     private static final Class MODULE_CLASS = HeisenbergExtension.class;
     private static final String CONFIGURATION_NAME = "heisenberg";
+
+    @Mock
+    private Extension extension;
 
     @Mock(answer = RETURNS_DEEP_STUBS)
     private Configuration configuration;
@@ -76,7 +80,7 @@ public class DynamicConfigurationValueResolverTestCase extends AbstractMuleTestC
 
         when(resolverSet.resolve(event)).thenReturn(resolverSetResult);
         configurationObjectBuilder = new ConfigurationObjectBuilder(configuration, resolverSet);
-        resolver = new DynamicConfigurationValueResolver(CONFIGURATION_NAME, configuration, configurationObjectBuilder, resolverSet, extensionManager);
+        resolver = new DynamicConfigurationValueResolver(CONFIGURATION_NAME, extension, configuration, configurationObjectBuilder, resolverSet, extensionManager);
     }
 
     @Test

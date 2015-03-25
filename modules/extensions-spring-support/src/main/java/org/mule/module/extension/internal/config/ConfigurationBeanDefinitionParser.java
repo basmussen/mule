@@ -11,6 +11,7 @@ import static org.mule.api.config.MuleProperties.OBJECT_MULE_CONTEXT;
 import static org.mule.module.extension.internal.config.XmlExtensionParserUtils.parseConfigName;
 import static org.mule.module.extension.internal.config.XmlExtensionParserUtils.toElementDescriptorBeanDefinition;
 import org.mule.extension.introspection.Configuration;
+import org.mule.extension.introspection.Extension;
 
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.w3c.dom.Element;
@@ -30,11 +31,13 @@ import org.w3c.dom.Element;
 final class ConfigurationBeanDefinitionParser extends BaseExtensionBeanDefinitionParser
 {
 
+    private final Extension extension;
     private final Configuration configuration;
 
-    ConfigurationBeanDefinitionParser(Configuration configuration)
+    ConfigurationBeanDefinitionParser(Extension extension, Configuration configuration)
     {
         super(ConfigurationFactoryBean.class);
+        this.extension = extension;
         this.configuration = configuration;
     }
 
@@ -43,6 +46,7 @@ final class ConfigurationBeanDefinitionParser extends BaseExtensionBeanDefinitio
     {
         parseConfigName(element, builder);
 
+        builder.addConstructorArgValue(extension);
         builder.addConstructorArgValue(configuration);
         builder.addConstructorArgValue(toElementDescriptorBeanDefinition(element));
         builder.addConstructorArgReference(OBJECT_EXTENSION_MANAGER);

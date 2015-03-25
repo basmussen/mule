@@ -10,6 +10,7 @@ import org.mule.api.MuleEvent;
 import org.mule.api.MuleException;
 import org.mule.extension.ExtensionManager;
 import org.mule.extension.introspection.Configuration;
+import org.mule.extension.introspection.Extension;
 import org.mule.module.extension.internal.runtime.ConfigurationObjectBuilder;
 
 import com.google.common.cache.CacheBuilder;
@@ -38,6 +39,7 @@ public class DynamicConfigurationValueResolver implements ValueResolver<Object>
 {
 
     private final String name;
+    private final Extension extension;
     private final Configuration configuration;
     private final ConfigurationObjectBuilder configurationObjectBuilder;
     private final ResolverSet resolverSet;
@@ -49,18 +51,21 @@ public class DynamicConfigurationValueResolver implements ValueResolver<Object>
      * Creates a new instance
      *
      * @param name                       the name of the config definition
+     * @param extension                  the {@link Extension} model on which the configuration is defined
      * @param configuration              the {@link Configuration} model
      * @param configurationObjectBuilder the introspection model of the objects this resolver produces
      * @param resolverSet                the {@link ResolverSet} that's going to be evaluated
      * @param extensionManager           the context's {@link ExtensionManager}
      */
     public DynamicConfigurationValueResolver(String name,
+                                             Extension extension,
                                              Configuration configuration,
                                              ConfigurationObjectBuilder configurationObjectBuilder,
                                              ResolverSet resolverSet,
                                              ExtensionManager extensionManager)
     {
         this.name = name;
+        this.extension = extension;
         this.configuration = configuration;
         this.configurationObjectBuilder = configurationObjectBuilder;
         this.resolverSet = resolverSet;
@@ -70,18 +75,17 @@ public class DynamicConfigurationValueResolver implements ValueResolver<Object>
 
     private void buildCache()
     {
-        cache = CacheBuilder.newBuilder()
-                .build(new CacheLoader<ResolverSetResult, Object>()
-                {
-                    @Override
-                    public Object load(ResolverSetResult key) throws Exception
-                    {
-                        Object config = configurationObjectBuilder.build(key);
-                        extensionManager.registerConfigurationInstance(configuration, name, config);
+        cache = CacheBuilder.newBuilder().build(new CacheLoader<ResolverSetResult, Object>()
+        {
+            @Override
+            public Object load(ResolverSetResult key) throws Exception
+            {
+                Object config = configurationObjectBuilder.build(key);
+                extensionManager.registerConfigurationInstance(extension, configuration, name, config);
 
-                        return config;
-                    }
-                });
+                return config;
+            }
+        });
     }
 
     /**

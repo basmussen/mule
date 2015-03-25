@@ -4,8 +4,9 @@
  * license, a copy of which has been included with this distribution in the
  * LICENSE.txt file.
  */
-package org.mule.module.extension.internal;
+package org.mule.module.extension.internal.manager;
 
+import static org.mule.util.Preconditions.checkArgument;
 import org.mule.api.MuleContext;
 import org.mule.api.MuleException;
 import org.mule.api.MuleRuntimeException;
@@ -16,10 +17,16 @@ import org.mule.common.MuleVersion;
 import org.mule.extension.ExtensionManager;
 import org.mule.extension.introspection.Configuration;
 import org.mule.extension.introspection.Extension;
+import org.mule.extension.introspection.Operation;
+import org.mule.extension.introspection.OperationExecutor;
 import org.mule.module.extension.internal.introspection.DefaultExtensionFactory;
 import org.mule.module.extension.internal.introspection.ExtensionDiscoverer;
+import org.mule.util.ObjectNameHelper;
 import org.mule.util.Preconditions;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -42,9 +49,19 @@ public final class DefaultExtensionManager implements ExtensionManager, MuleCont
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultExtensionManager.class);
 
-    private MuleContext muleContext;
-    private final Map<String, Extension> extensions = Collections.synchronizedMap(new LinkedHashMap<String, Extension>());
+    private final ExtensionRegister register = new ExtensionRegister();
     private final ServiceRegistry serviceRegistry = new SPIServiceRegistry();
+    private final LoadingCache<Extension, ExtensionState> extensionStates = CacheBuilder.newBuilder().build(new CacheLoader<Extension, ExtensionState>()
+    {
+        @Override
+        public ExtensionState load(Extension key) throws Exception
+        {
+            return new ExtensionState();
+        }
+    });
+
+    private MuleContext muleContext;
+    private ObjectNameHelper objectNameHelper;
     private ExtensionDiscoverer extensionDiscoverer = new DefaultExtensionDiscoverer(new DefaultExtensionFactory(serviceRegistry), serviceRegistry);
 
     @Override
@@ -74,10 +91,10 @@ public final class DefaultExtensionManager implements ExtensionManager, MuleCont
     @Override
     public boolean registerExtension(Extension extension)
     {
-        LOGGER.info("Registering extension (version {})", extension.getName(), extension.getVersion());
+        LOGGER.info("Registering extension {} (version {})", extension.getName(), extension.getVersion());
         final String extensionName = extension.getName();
 
-        if (extensions.containsKey(extensionName))
+        if (register.containsExtension(extensionName))
         {
             return maybeUpdateExtension(extension, extensionName);
         }
@@ -92,26 +109,37 @@ public final class DefaultExtensionManager implements ExtensionManager, MuleCont
      * {@inheritDoc}
      */
     @Override
-    public <T> void registerConfigurationInstance(Configuration configuration, String name, T instance)
+    public <T> void registerConfigurationInstance(Configuration configuration, String name, T configurationInstance)
     {
+        final String uniqueName = objectNameHelper.getUniqueName(name);
         try
         {
-            muleContext.getRegistry().registerObject(getRegistryName(name, instance), instance);
+            muleContext.getRegistry().registerObject(uniqueName, configurationInstance);
         }
         catch (MuleException e)
         {
             throw new MuleRuntimeException(e);
         }
+
+        ExtensionState extensionState = extensionStates.getUnchecked(register.getExtension(configuration));
+        extensionState.registerConfigurationInstance(uniqueName, configuration, configurationInstance);
     }
 
-    private String getRegistryName(String configName, Object config)
-    {
-        return String.format("_extensionConfig_%s@%d", configName, System.identityHashCode(config));
+    public <C> OperationExecutor getOperationExecutor(Operation operation, C configurationInstance) {
+        ExtensionState extensionState = extensionStates.getUnchecked(register.getExtension(operation));
+
+        OperationExecutor executor = extensionState.getOperationExecutor(operation, configurationInstance);
+        if (executor == null) {
+            executor = ...
+            extensionState.registerOperationExecutor(operation, configurationInstance, executor);
+        }
+
+        return executor;
     }
 
     private boolean maybeUpdateExtension(Extension extension, String extensionName)
     {
-        Extension actual = extensions.get(extensionName);
+        Extension actual = register.getExtension(extensionName);
         MuleVersion newVersion;
         try
         {
@@ -145,7 +173,7 @@ public final class DefaultExtensionManager implements ExtensionManager, MuleCont
 
     private void doRegisterExtension(Extension extension, String extensionName)
     {
-        extensions.put(extensionName, extension);
+        register.registerExtension(extensionName, extension);
     }
 
     private void logExtensionHotUpdate(Extension extension, Extension actual)
@@ -167,32 +195,24 @@ public final class DefaultExtensionManager implements ExtensionManager, MuleCont
     @Override
     public Set<Extension> getExtensions()
     {
-        return ImmutableSet.copyOf(extensions.values());
+        return register.getExtensions();
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public Set<Extension> getExtensionsCapableOf(Class<?> capabilityType)
+    public <C> Set<Extension> getExtensionsCapableOf(Class<C> capabilityType)
     {
-        Preconditions.checkArgument(capabilityType != null, "capability type cannot be null");
-        ImmutableSet.Builder<Extension> capables = ImmutableSet.builder();
-        for (Extension extension : getExtensions())
-        {
-            if (extension.isCapableOf(capabilityType))
-            {
-                capables.add(extension);
-            }
-        }
-
-        return capables.build();
+        checkArgument(capabilityType != null, "capability type cannot be null");
+        return register.getExtensionsCapableOf(capabilityType);
     }
 
     @Override
     public void setMuleContext(MuleContext muleContext)
     {
         this.muleContext = muleContext;
+        objectNameHelper = new ObjectNameHelper(muleContext);
     }
 
     protected void setExtensionsDiscoverer(ExtensionDiscoverer discoverer)

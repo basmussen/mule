@@ -19,7 +19,7 @@ import org.mule.extension.introspection.ExtensionFactory;
 import org.mule.extension.resources.GenerableResource;
 import org.mule.extension.resources.ResourcesGenerator;
 import org.mule.extension.resources.spi.GenerableResourceContributor;
-import org.mule.module.extension.internal.DefaultExtensionManager;
+import org.mule.module.extension.internal.manager.DefaultExtensionManager;
 import org.mule.module.extension.internal.introspection.DefaultExtensionFactory;
 import org.mule.module.extension.internal.resources.AbstractResourcesGenerator;
 import org.mule.util.ArrayUtils;

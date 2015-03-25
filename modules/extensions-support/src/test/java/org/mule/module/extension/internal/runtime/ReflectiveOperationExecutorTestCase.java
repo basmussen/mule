@@ -43,7 +43,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 @SmallTest
 @RunWith(MockitoJUnitRunner.class)
-public class TypeAwareOperationImplementationTestCase extends AbstractMuleTestCase
+public class ReflectiveOperationExecutorTestCase extends AbstractMuleTestCase
 {
 
     @Mock(answer = RETURNS_DEEP_STUBS)
@@ -54,7 +54,7 @@ public class TypeAwareOperationImplementationTestCase extends AbstractMuleTestCa
 
     private Map<Parameter, Object> parameterValues = new HashMap<>();
 
-    private TypeAwareOperationImplementation implementation;
+    private ReflectiveOperationExecutor implementation;
     private HeisenbergExtension config;
     private OperationContext operationContext;
 
@@ -71,7 +71,7 @@ public class TypeAwareOperationImplementationTestCase extends AbstractMuleTestCa
     public void operationWithReturnValueAndWithoutParameters() throws Exception
     {
         Method method = ClassUtils.getMethod(HeisenbergOperations.class, "sayMyName", new Class<?>[] {});
-        implementation = new TypeAwareOperationImplementation(HeisenbergOperations.class, method);
+        implementation = new ReflectiveOperationExecutor(HeisenbergOperations.class, method);
         assertResult(implementation.execute(operationContext), HEISENBERG);
     }
 
@@ -79,7 +79,7 @@ public class TypeAwareOperationImplementationTestCase extends AbstractMuleTestCa
     public void voidOperationWithoutParameters() throws Exception
     {
         Method method = ClassUtils.getMethod(HeisenbergOperations.class, "die", new Class<?>[] {});
-        implementation = new TypeAwareOperationImplementation(HeisenbergOperations.class, method);
+        implementation = new ReflectiveOperationExecutor(HeisenbergOperations.class, method);
         assertSameInstance(implementation.execute(operationContext), muleEvent);
         assertThat(config.getFinalHealth(), is(DEAD));
     }
@@ -88,7 +88,7 @@ public class TypeAwareOperationImplementationTestCase extends AbstractMuleTestCa
     public void withArgumentsAndReturnValue() throws Exception
     {
         Method method = ClassUtils.getMethod(HeisenbergOperations.class, "getEnemy", new Class<?>[] {int.class});
-        implementation = new TypeAwareOperationImplementation(HeisenbergOperations.class, method);
+        implementation = new ReflectiveOperationExecutor(HeisenbergOperations.class, method);
         parameterValues.put(mock(Parameter.class), 0);
         assertResult(implementation.execute(operationContext), "Hank");
     }
@@ -98,7 +98,7 @@ public class TypeAwareOperationImplementationTestCase extends AbstractMuleTestCa
     {
         HeisenbergOperations.eventHolder.set(muleEvent);
         Method method = ClassUtils.getMethod(HeisenbergOperations.class, "hideMethInEvent", new Class<?>[] {});
-        implementation = new TypeAwareOperationImplementation(HeisenbergOperations.class, method);
+        implementation = new ReflectiveOperationExecutor(HeisenbergOperations.class, method);
         assertSameInstance(implementation.execute(operationContext), muleEvent);
         verify(muleEvent).setFlowVariable("secretPackage", "meth");
     }
@@ -107,14 +107,14 @@ public class TypeAwareOperationImplementationTestCase extends AbstractMuleTestCa
     public void operationWithTwoConfigs() throws Exception
     {
         Method method = ClassUtils.getMethod(HeisenbergOperations.class, "hideMethInEvent", new Class<?>[] {});
-        new TypeAwareOperationImplementation(TwoConfigs.class, method);
+        new ReflectiveOperationExecutor(TwoConfigs.class, method);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void operationWithLifecycle() throws Exception
     {
         Method method = ClassUtils.getMethod(HeisenbergOperations.class, "hideMethInEvent", new Class<?>[] {});
-        new TypeAwareOperationImplementation(WithLifecycle.class, method);
+        new ReflectiveOperationExecutor(WithLifecycle.class, method);
     }
 
     private void initHeisenberg()

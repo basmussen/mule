@@ -7,9 +7,6 @@
 package org.mule.module.extension.internal.config;
 
 import static org.mule.module.extension.internal.config.XmlExtensionParserUtils.getResolverSet;
-import org.mule.api.MuleContext;
-import org.mule.api.context.MuleContextAware;
-import org.mule.api.lifecycle.LifecycleUtils;
 import org.mule.api.processor.MessageProcessor;
 import org.mule.extension.introspection.Operation;
 import org.mule.module.extension.internal.runtime.processor.OperationMessageProcessor;
@@ -26,14 +23,13 @@ import org.springframework.beans.factory.FactoryBean;
  *
  * @since 3.7.0
  */
-public class OperationFactoryBean implements FactoryBean<OperationMessageProcessor>, MuleContextAware
+public class OperationFactoryBean implements FactoryBean<OperationMessageProcessor>
 {
 
     private final ValueResolver<Object> configurationValueResolver;
     private final Operation operation;
     private final ElementDescriptor element;
     private final Map<String, List<MessageProcessor>> nestedOperations;
-    private MuleContext muleContext;
 
     public OperationFactoryBean(ValueResolver<Object> configurationValueResolver,
                                 Operation operation,
@@ -50,7 +46,6 @@ public class OperationFactoryBean implements FactoryBean<OperationMessageProcess
     public OperationMessageProcessor getObject() throws Exception
     {
         ResolverSet resolverSet = getResolverSet(element, operation.getParameters(), nestedOperations);
-        LifecycleUtils.initialiseIfNeeded(resolverSet, muleContext);
         return new OperationMessageProcessor(configurationValueResolver, operation, resolverSet);
     }
 
@@ -70,11 +65,5 @@ public class OperationFactoryBean implements FactoryBean<OperationMessageProcess
     public boolean isSingleton()
     {
         return false;
-    }
-
-    @Override
-    public void setMuleContext(MuleContext context)
-    {
-        muleContext = context;
     }
 }

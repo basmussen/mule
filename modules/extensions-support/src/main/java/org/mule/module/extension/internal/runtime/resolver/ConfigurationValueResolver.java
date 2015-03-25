@@ -17,6 +17,7 @@ import org.mule.api.NamedObject;
 import org.mule.api.construct.FlowConstruct;
 import org.mule.extension.ExtensionManager;
 import org.mule.extension.introspection.Configuration;
+import org.mule.extension.introspection.Extension;
 import org.mule.module.extension.internal.runtime.ConfigurationObjectBuilder;
 
 /**
@@ -45,7 +46,12 @@ public final class ConfigurationValueResolver implements ValueResolver<Object>, 
     private final String name;
     private final ValueResolver delegate;
 
-    public ConfigurationValueResolver(String name, Configuration configuration, ResolverSet resolverSet, ExtensionManager extensionManager, MuleContext muleContext)
+    public ConfigurationValueResolver(String name,
+                                      Extension extension,
+                                      Configuration configuration,
+                                      ResolverSet resolverSet,
+                                      ExtensionManager extensionManager,
+                                      MuleContext muleContext)
     {
         this.name = name;
 
@@ -53,14 +59,14 @@ public final class ConfigurationValueResolver implements ValueResolver<Object>, 
 
         if (resolverSet.isDynamic())
         {
-            delegate = new DynamicConfigurationValueResolver(name, configuration, configurationObjectBuilder, resolverSet, extensionManager);
+            delegate = new DynamicConfigurationValueResolver(name, extension, configuration, configurationObjectBuilder, resolverSet, extensionManager);
         }
         else
         {
             try
             {
                 Object config = configurationObjectBuilder.build(getInitialiserEvent(muleContext));
-                extensionManager.registerConfigurationInstance(configuration, name, config);
+                extensionManager.registerConfigurationInstance(extension, configuration, name, config);
                 delegate = new StaticValueResolver<>(config);
             }
             catch (MuleException e)

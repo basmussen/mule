@@ -36,7 +36,7 @@ import org.mule.module.extension.internal.capability.metadata.ImplementedTypeCap
 import org.mule.module.extension.internal.capability.metadata.ImplicitArgumentCapability;
 import org.mule.module.extension.internal.capability.metadata.ParameterGroupCapability;
 import org.mule.module.extension.internal.capability.metadata.TypeRestrictionCapability;
-import org.mule.module.extension.internal.runtime.TypeAwareOperationImplementation;
+import org.mule.module.extension.internal.runtime.ReflectiveOperationExecutorFactory;
 import org.mule.module.extension.internal.util.IntrospectionUtils;
 import org.mule.util.CollectionUtils;
 
@@ -212,12 +212,12 @@ public final class AnnotationsBasedDescriber implements Describer
         }
     }
 
-    private void declareOperation(DeclarationConstruct declaration, Class<?> actingClass)
+    private <T> void declareOperation(DeclarationConstruct declaration, Class<T> actingClass)
     {
         for (Method method : getOperationMethods(actingClass))
         {
             OperationConstruct operation = declaration.withOperation(method.getName())
-                    .implementedIn(new TypeAwareOperationImplementation(actingClass, method));
+                    .executorsCreatedBy(new ReflectiveOperationExecutorFactory<>(actingClass, method));
 
             declareOperationParameters(actingClass, method, operation);
 
