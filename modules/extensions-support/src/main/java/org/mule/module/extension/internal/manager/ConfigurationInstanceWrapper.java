@@ -6,38 +6,99 @@
  */
 package org.mule.module.extension.internal.manager;
 
-final class ConfigurationInstanceWrapper<T>
+import static java.lang.String.format;
+import static org.mule.util.Preconditions.checkArgument;
+import org.mule.extension.introspection.Configuration;
+import org.mule.extension.introspection.Operation;
+import org.mule.extension.introspection.OperationExecutor;
+import org.mule.util.StringUtils;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+/**
+ * A wrapper class to hold an instance which is a realisation of a
+ * {@link Configuration} model and state associated to it, such as its
+ * {@link OperationExecutor}s, registration name, etc
+ *
+ * @param <C> the type of the configuration instance
+ * @since 3.7.0
+ */
+final class ConfigurationInstanceWrapper<C>
 {
 
     private final String name;
-    private final T configurationInstance;
+    private final C configurationInstance;
+    private final ConcurrentMap<Operation, OperationExecutor> executors = new ConcurrentHashMap<>();
 
-    public ConfigurationInstanceWrapper(String name, T configurationInstance)
+    public ConfigurationInstanceWrapper(String name, C configurationInstance)
     {
+        checkArgument(!StringUtils.isEmpty(name), "name cannot be empty");
+        checkArgument(configurationInstance != null, "configurationInstance cannot be null");
+
         this.name = name;
         this.configurationInstance = configurationInstance;
     }
 
+    /**
+     * @param operation the {@link Operation} you wan to execute
+     * @return a {@link OperationExecutor} or {@code null} if none registered yet
+     */
+    OperationExecutor getOperationExecutor(Operation operation)
+    {
+        return executors.get(operation);
+    }
 
-    T getConfigurationInstance()
+    /**
+     * @return the {@link #configurationInstance}
+     */
+    C getConfigurationInstance()
     {
         return configurationInstance;
     }
 
+    /**
+     * Registers a {@link OperationExecutor} for the given {@code operation}
+     *
+     * @param operation the {@link Operation}    you want to execute
+     * @param executor  a {@link OperationExecutor}
+     */
+    void registerOperationExecutor(Operation operation, OperationExecutor executor)
+    {
+        if (executors.putIfAbsent(operation, executor) != null)
+        {
+            throw new IllegalStateException(format("An operation executor was already registered for operation %s on configuration instance %s", operation.getName(), getName()));
+        }
+    }
+
+    /**
+     * @return the instance registration's name
+     */
+    String getName()
+    {
+        return name;
+    }
+
+    /**
+     * Redefined to work in terms of the {@link #name} property
+     */
     @Override
     public boolean equals(Object obj)
     {
         if (obj instanceof ConfigurationInstanceWrapper)
         {
-            return configurationInstance == ((ConfigurationInstanceWrapper) obj).configurationInstance;
+            return name.equals(((ConfigurationInstanceWrapper) obj).getName());
         }
 
         return false;
     }
 
+    /**
+     * Redefined to work in terms of the {@link #name} property
+     */
     @Override
     public int hashCode()
     {
-        return configurationInstance.hashCode();
+        return name.hashCode();
     }
 }

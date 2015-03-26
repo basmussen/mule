@@ -7,8 +7,23 @@
 package org.mule.module.extension.internal.runtime;
 
 import org.mule.extension.introspection.OperationContext;
+import org.mule.extension.introspection.OperationExecutor;
 
+/**
+ * A delegate interface to decouple a {@link OperationExecutor}'s return value
+ * from the format in which it is to be handed off
+ *
+ * @since 3.7.0
+ */
 interface ReturnDelegate
 {
+
+    /**
+     * Adapts the {@code value} to another format
+     *
+     * @param value            the value to be returned
+     * @param operationContext the {@link OperationContext} on which the operation was executed
+     * @return an adapted value
+     */
     Object asReturnValue(Object value, OperationContext operationContext);
 }

@@ -6,11 +6,11 @@
  */
 package org.mule.module.extension.internal.runtime.resolver;
 
+import org.mule.api.MuleContext;
 import org.mule.api.MuleEvent;
 import org.mule.api.MuleException;
 import org.mule.extension.ExtensionManager;
 import org.mule.extension.introspection.Configuration;
-import org.mule.extension.introspection.Extension;
 import org.mule.module.extension.internal.runtime.ConfigurationObjectBuilder;
 
 import com.google.common.cache.CacheBuilder;
@@ -31,7 +31,8 @@ import com.google.common.cache.LoadingCache;
  * an interval configured using {@code expirationInterval}
  * and {@code expirationTimeUnit}.
  * <p/>
- * The generated instances will be registered with the {@code extensionManager}.
+ * The generated instances will be registered with the {@code extensionManager}
+ * through {@link ExtensionManager#registerConfigurationInstance(Configuration, String, Object)}
  *
  * @since 3.7.0
  */
@@ -39,7 +40,6 @@ public class DynamicConfigurationValueResolver implements ValueResolver<Object>
 {
 
     private final String name;
-    private final Extension extension;
     private final Configuration configuration;
     private final ConfigurationObjectBuilder configurationObjectBuilder;
     private final ResolverSet resolverSet;
@@ -51,25 +51,22 @@ public class DynamicConfigurationValueResolver implements ValueResolver<Object>
      * Creates a new instance
      *
      * @param name                       the name of the config definition
-     * @param extension                  the {@link Extension} model on which the configuration is defined
      * @param configuration              the {@link Configuration} model
      * @param configurationObjectBuilder the introspection model of the objects this resolver produces
      * @param resolverSet                the {@link ResolverSet} that's going to be evaluated
-     * @param extensionManager           the context's {@link ExtensionManager}
+     * @param muleContext                the current {@link MuleContext}
      */
     public DynamicConfigurationValueResolver(String name,
-                                             Extension extension,
                                              Configuration configuration,
                                              ConfigurationObjectBuilder configurationObjectBuilder,
                                              ResolverSet resolverSet,
-                                             ExtensionManager extensionManager)
+                                             MuleContext muleContext)
     {
         this.name = name;
-        this.extension = extension;
         this.configuration = configuration;
         this.configurationObjectBuilder = configurationObjectBuilder;
         this.resolverSet = resolverSet;
-        this.extensionManager = extensionManager;
+        extensionManager = muleContext.getExtensionManager();
         buildCache();
     }
 
@@ -81,7 +78,7 @@ public class DynamicConfigurationValueResolver implements ValueResolver<Object>
             public Object load(ResolverSetResult key) throws Exception
             {
                 Object config = configurationObjectBuilder.build(key);
-                extensionManager.registerConfigurationInstance(extension, configuration, name, config);
+                extensionManager.registerConfigurationInstance(configuration, name, config);
 
                 return config;
             }

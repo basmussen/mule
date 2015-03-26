@@ -16,6 +16,8 @@ import static org.reflections.ReflectionUtils.withParametersCount;
 import static org.springframework.util.ReflectionUtils.invokeMethod;
 import org.mule.api.MuleException;
 import org.mule.api.MuleRuntimeException;
+import org.mule.extension.ExtensionManager;
+import org.mule.extension.introspection.Operation;
 import org.mule.extension.introspection.OperationContext;
 import org.mule.extension.introspection.OperationExecutor;
 import org.mule.extension.introspection.Parameter;
@@ -38,17 +40,19 @@ import org.apache.commons.collections.CollectionUtils;
 
 /**
  * Implementation of {@link OperationExecutor} which relies on a
- * {@link Class} and a reference to one of its methods. On each execution,
- * that class instantiated and the method invoked.
+ * {@link Class} and a reference to one of its methods. That {@link Class}
+ * is expected to have a public constructor which takes a configuration instance
+ * as its only argument, since per the rules of {@link ExtensionManager#getOperationExecutor(Operation, Object)}
+ * only one executor is to be available per each {@link Operation}|configurationInstance pair
  *
  * @since 3.7.0
  */
-final class ReflectiveOperationExecutor<C, E> implements OperationExecutor
+final class ReflectiveOperationExecutor<C, E> implements DelegatingOperationExecutor<E>
 {
 
     private final Method operationMethod;
     private final ReturnDelegate returnDelegate;
-    private final E executor;
+    private final E executorDelegate;
 
     ReflectiveOperationExecutor(Class<E> implementationClass, Method operationMethod, C configurationInstance, ReturnDelegate returnDelegate)
     {
@@ -56,14 +60,26 @@ final class ReflectiveOperationExecutor<C, E> implements OperationExecutor
         checkArgument(configurationInstance != null, "Configuration instance cannot be null");
         this.operationMethod = operationMethod;
         this.returnDelegate = returnDelegate;
-        this.executor = createExecutor(implementationClass, configurationInstance);
+        this.executorDelegate = createExecutor(implementationClass, configurationInstance);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Future<Object> execute(OperationContext operationContext) throws Exception
     {
-        Object result = invokeMethod(operationMethod, executor, getParameterValues(operationContext));
+        Object result = invokeMethod(operationMethod, executorDelegate, getParameterValues(operationContext));
         return Futures.immediateFuture(returnDelegate.asReturnValue(result, operationContext));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public E getExecutorDelegate()
+    {
+        return executorDelegate;
     }
 
     private Object[] getParameterValues(OperationContext operationContext)

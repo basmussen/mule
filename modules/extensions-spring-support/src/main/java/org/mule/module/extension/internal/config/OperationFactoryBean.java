@@ -6,12 +6,17 @@
  */
 package org.mule.module.extension.internal.config;
 
+import static org.mule.config.i18n.MessageFactory.createStaticMessage;
 import static org.mule.module.extension.internal.config.XmlExtensionParserUtils.getResolverSet;
+import org.mule.api.MuleContext;
+import org.mule.api.MuleRuntimeException;
 import org.mule.api.processor.MessageProcessor;
+import org.mule.api.registry.RegistrationException;
 import org.mule.extension.introspection.Operation;
 import org.mule.module.extension.internal.runtime.processor.OperationMessageProcessor;
 import org.mule.module.extension.internal.runtime.resolver.ResolverSet;
 import org.mule.module.extension.internal.runtime.resolver.ValueResolver;
+import org.mule.util.ObjectNameHelper;
 
 import java.util.List;
 import java.util.Map;
@@ -34,12 +39,16 @@ public class OperationFactoryBean implements FactoryBean<OperationMessageProcess
     public OperationFactoryBean(ValueResolver<Object> configurationValueResolver,
                                 Operation operation,
                                 ElementDescriptor element,
-                                Map<String, List<MessageProcessor>> nestedOperations)
+                                Map<String, List<MessageProcessor>> nestedOperations,
+                                MuleContext muleContext)
     {
         this.configurationValueResolver = configurationValueResolver;
         this.operation = operation;
         this.element = element;
         this.nestedOperations = nestedOperations;
+
+        registerNestedProcessors(nestedOperations, muleContext);
+
     }
 
     @Override
@@ -65,5 +74,28 @@ public class OperationFactoryBean implements FactoryBean<OperationMessageProcess
     public boolean isSingleton()
     {
         return false;
+    }
+
+    private void registerNestedProcessors(Map<String, List<MessageProcessor>> nestedOperations, MuleContext muleContext)
+    {
+        if (!nestedOperations.isEmpty())
+        {
+            ObjectNameHelper objectNameHelper = new ObjectNameHelper(muleContext);
+            for (List<MessageProcessor> messageProcessors : nestedOperations.values())
+            {
+                try
+                {
+                    for (MessageProcessor messageProcessor : messageProcessors)
+                    {
+                        muleContext.getRegistry().registerObject(objectNameHelper.getUniqueName(""), messageProcessor);
+                    }
+
+                }
+                catch (RegistrationException e)
+                {
+                    throw new MuleRuntimeException(createStaticMessage("Could not register nested processor"), e);
+                }
+            }
+        }
     }
 }

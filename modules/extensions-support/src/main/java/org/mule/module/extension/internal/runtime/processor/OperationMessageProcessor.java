@@ -7,13 +7,16 @@
 package org.mule.module.extension.internal.runtime.processor;
 
 import org.mule.api.MessagingException;
+import org.mule.api.MuleContext;
 import org.mule.api.MuleEvent;
 import org.mule.api.MuleException;
 import org.mule.api.MuleMessage;
+import org.mule.api.context.MuleContextAware;
 import org.mule.api.processor.MessageProcessor;
 import org.mule.config.i18n.MessageFactory;
 import org.mule.extension.introspection.Operation;
 import org.mule.extension.introspection.OperationContext;
+import org.mule.extension.introspection.OperationExecutor;
 import org.mule.module.extension.internal.runtime.DefaultOperationContext;
 import org.mule.module.extension.internal.runtime.resolver.ResolverSet;
 import org.mule.module.extension.internal.runtime.resolver.ResolverSetResult;
@@ -32,13 +35,15 @@ import java.util.concurrent.Future;
  *
  * @since 3.7.0
  */
-public final class OperationMessageProcessor implements MessageProcessor
+public final class OperationMessageProcessor implements MessageProcessor, MuleContextAware
 {
 
     private final ValueResolver<Object> configuration;
     private final Operation operation;
     private final ResolverSet resolverSet;
     private final List<ValueSetter> instanceLevelGroupValueSetters;
+
+    private MuleContext muleContext;
 
     public OperationMessageProcessor(ValueResolver<Object> configuration, Operation operation, ResolverSet resolverSet)
     {
@@ -89,11 +94,12 @@ public final class OperationMessageProcessor implements MessageProcessor
 
     private Future<Object> executeOperation(MuleEvent event, Object configInstance, ResolverSetResult parameters) throws MuleException
     {
-        OperationContext context = new DefaultOperationContext(configInstance, parameters, event, instanceLevelGroupValueSetters);
+        OperationExecutor executor = muleContext.getExtensionManager().getOperationExecutor(operation, configInstance);
+        OperationContext context = new DefaultOperationContext(parameters, event, instanceLevelGroupValueSetters);
 
         try
         {
-            return operation.getImplementation().execute(context);
+            return executor.execute(context);
         }
         catch (Exception e)
         {
@@ -104,5 +110,11 @@ public final class OperationMessageProcessor implements MessageProcessor
     private MuleException handledException(String message, MuleEvent event, Exception e)
     {
         return new MessagingException(MessageFactory.createStaticMessage(message), event, e, this);
+    }
+
+    @Override
+    public void setMuleContext(MuleContext muleContext)
+    {
+        this.muleContext = muleContext;
     }
 }

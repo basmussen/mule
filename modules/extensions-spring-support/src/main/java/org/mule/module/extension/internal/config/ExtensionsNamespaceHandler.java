@@ -115,7 +115,7 @@ public class ExtensionsNamespaceHandler extends NamespaceHandlerSupport
     {
         for (Configuration configuration : extension.getConfigurations())
         {
-            registerBeanDefinitionParser(configuration.getName(), new ConfigurationBeanDefinitionParser(extension, configuration));
+            registerBeanDefinitionParser(configuration.getName(), new ConfigurationBeanDefinitionParser(configuration));
         }
     }
 

@@ -8,6 +8,15 @@ package org.mule.module.extension.internal.runtime;
 
 import org.mule.extension.introspection.OperationContext;
 
+/**
+ * Simple implementation of {@link ReturnDelegate} which simply returns
+ * the provided value as is.
+ *
+ * This class is intended to be used as a singleton, use the
+ * {@link #INSTANCE} attribute to access the instance
+ *
+ * @since 3.7.0
+ */
 final class ValueReturnDelegate implements ReturnDelegate
 {
     static final ReturnDelegate INSTANCE = new ValueReturnDelegate();
@@ -16,6 +25,10 @@ final class ValueReturnDelegate implements ReturnDelegate
     {
     }
 
+    /**
+     * {@inheritDoc}
+     * @return {@code value}
+     */
     @Override
     public Object asReturnValue(Object value, OperationContext operationContext)
     {

@@ -11,9 +11,11 @@ import org.mule.api.MuleContext;
 import org.mule.api.MuleException;
 import org.mule.api.MuleRuntimeException;
 import org.mule.api.context.MuleContextAware;
+import org.mule.api.registry.RegistrationException;
 import org.mule.api.registry.SPIServiceRegistry;
 import org.mule.api.registry.ServiceRegistry;
 import org.mule.common.MuleVersion;
+import org.mule.config.i18n.MessageFactory;
 import org.mule.extension.ExtensionManager;
 import org.mule.extension.introspection.Configuration;
 import org.mule.extension.introspection.Extension;
@@ -21,19 +23,12 @@ import org.mule.extension.introspection.Operation;
 import org.mule.extension.introspection.OperationExecutor;
 import org.mule.module.extension.internal.introspection.DefaultExtensionFactory;
 import org.mule.module.extension.internal.introspection.ExtensionDiscoverer;
+import org.mule.module.extension.internal.runtime.DelegatingOperationExecutor;
 import org.mule.util.ObjectNameHelper;
-import org.mule.util.Preconditions;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -51,14 +46,6 @@ public final class DefaultExtensionManager implements ExtensionManager, MuleCont
 
     private final ExtensionRegister register = new ExtensionRegister();
     private final ServiceRegistry serviceRegistry = new SPIServiceRegistry();
-    private final LoadingCache<Extension, ExtensionState> extensionStates = CacheBuilder.newBuilder().build(new CacheLoader<Extension, ExtensionState>()
-    {
-        @Override
-        public ExtensionState load(Extension key) throws Exception
-        {
-            return new ExtensionState();
-        }
-    });
 
     private MuleContext muleContext;
     private ObjectNameHelper objectNameHelper;
@@ -109,32 +96,60 @@ public final class DefaultExtensionManager implements ExtensionManager, MuleCont
      * {@inheritDoc}
      */
     @Override
-    public <T> void registerConfigurationInstance(Configuration configuration, String name, T configurationInstance)
+    public <C> void registerConfigurationInstance(Configuration configuration, String configurationInstanceName, C configurationInstance)
     {
-        final String uniqueName = objectNameHelper.getUniqueName(name);
+        ExtensionStateTracker extensionStateTracker = register.getExtensionState(configuration);
+        extensionStateTracker.registerConfigurationInstance(configurationInstanceName, configuration, configurationInstance);
+
         try
         {
-            muleContext.getRegistry().registerObject(uniqueName, configurationInstance);
+            muleContext.getRegistry().registerObject(objectNameHelper.getUniqueName(configurationInstanceName), configurationInstance);
         }
         catch (MuleException e)
         {
             throw new MuleRuntimeException(e);
         }
 
-        ExtensionState extensionState = extensionStates.getUnchecked(register.getExtension(configuration));
-        extensionState.registerConfigurationInstance(uniqueName, configuration, configurationInstance);
     }
 
-    public <C> OperationExecutor getOperationExecutor(Operation operation, C configurationInstance) {
-        ExtensionState extensionState = extensionStates.getUnchecked(register.getExtension(operation));
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public <C> OperationExecutor getOperationExecutor(Operation operation, C configurationInstance)
+    {
+        ExtensionStateTracker extensionStateTracker = register.getExtensionState(operation);
+        OperationExecutor executor;
 
-        OperationExecutor executor = extensionState.getOperationExecutor(operation, configurationInstance);
-        if (executor == null) {
-            executor = ...
-            extensionState.registerOperationExecutor(operation, configurationInstance, executor);
+        synchronized (configurationInstance)
+        {
+            executor = extensionStateTracker.getOperationExecutor(operation, configurationInstance);
+            if (executor == null)
+            {
+                executor = createOperationExecutor(operation, configurationInstance, extensionStateTracker);
+            }
         }
 
         return executor;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Set<Extension> getExtensions()
+    {
+        return register.getExtensions();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public <C> Set<Extension> getExtensionsCapableOf(Class<C> capabilityType)
+    {
+        checkArgument(capabilityType != null, "capability type cannot be null");
+        return register.getExtensionsCapableOf(capabilityType);
     }
 
     private boolean maybeUpdateExtension(Extension extension, String extensionName)
@@ -189,30 +204,33 @@ public final class DefaultExtensionManager implements ExtensionManager, MuleCont
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Set<Extension> getExtensions()
-    {
-        return register.getExtensions();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public <C> Set<Extension> getExtensionsCapableOf(Class<C> capabilityType)
-    {
-        checkArgument(capabilityType != null, "capability type cannot be null");
-        return register.getExtensionsCapableOf(capabilityType);
-    }
-
     @Override
     public void setMuleContext(MuleContext muleContext)
     {
         this.muleContext = muleContext;
         objectNameHelper = new ObjectNameHelper(muleContext);
+    }
+
+    private <C> OperationExecutor createOperationExecutor(Operation operation, C configurationInstance, ExtensionStateTracker extensionStateTracker)
+    {
+        OperationExecutor executor;
+        executor = operation.createExecutor(configurationInstance);
+        if (executor instanceof DelegatingOperationExecutor)
+        {
+            Extension extension = register.getExtension(operation);
+            String executorName = objectNameHelper.getUniqueName(String.format("%s_executor_%s", extension.getName(), operation.getName()));
+            try
+            {
+                muleContext.getRegistry().registerObject(executorName, ((DelegatingOperationExecutor<Object>) executor).getExecutorDelegate());
+            }
+            catch (RegistrationException e)
+            {
+                throw new MuleRuntimeException(MessageFactory.createStaticMessage("Could not create new executor for operation"), e);
+            }
+        }
+
+        extensionStateTracker.registerOperationExecutor(operation, configurationInstance, executor);
+        return executor;
     }
 
     protected void setExtensionsDiscoverer(ExtensionDiscoverer discoverer)

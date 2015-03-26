@@ -6,11 +6,13 @@
  */
 package org.mule.module.extension.internal.runtime.resolver;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
+import static org.mockito.Matchers.same;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -20,9 +22,9 @@ import org.mule.api.MuleContext;
 import org.mule.api.MuleEvent;
 import org.mule.extension.ExtensionManager;
 import org.mule.extension.introspection.Configuration;
-import org.mule.extension.introspection.Extension;
 import org.mule.extension.introspection.Parameter;
 import org.mule.module.extension.HeisenbergExtension;
+import org.mule.module.extension.internal.util.ExtensionsTestUtils;
 import org.mule.tck.junit4.AbstractMuleTestCase;
 import org.mule.tck.size.SmallTest;
 
@@ -32,6 +34,7 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -46,9 +49,6 @@ public class ConfigurationValueResolverTestCase extends AbstractMuleTestCase
     private static final Class MODULE_CLASS = HeisenbergExtension.class;
     private static final String MY_NAME = "heisenberg";
     private static final int AGE = 50;
-
-    @Mock
-    private Extension extension;
 
     @Mock(answer = RETURNS_DEEP_STUBS)
     private Configuration configuration;
@@ -73,6 +73,9 @@ public class ConfigurationValueResolverTestCase extends AbstractMuleTestCase
     @Before
     public void before() throws Exception
     {
+        when(muleContext.getExtensionManager()).thenReturn(extensionManager);
+        ExtensionsTestUtils.stubRegistryKey(muleContext, CONFIG_NAME);
+
         when(configuration.getInstantiator().getObjectType()).thenReturn(MODULE_CLASS);
         when(configuration.getInstantiator().newInstance()).thenAnswer(new Answer<Object>()
         {
@@ -121,7 +124,9 @@ public class ConfigurationValueResolverTestCase extends AbstractMuleTestCase
 
     private void assertConfigInstanceRegistered(Object instance)
     {
-        verify(extensionManager).registerConfigurationInstance(extension, configuration, CONFIG_NAME, instance);
+        ArgumentCaptor<String> key = ArgumentCaptor.forClass(String.class);
+        verify(extensionManager).registerConfigurationInstance(same(configuration), key.capture(), same(instance));
+        assertThat(key.getValue(), containsString(CONFIG_NAME));
     }
 
     private void assertSameInstancesResolved() throws Exception
@@ -181,6 +186,6 @@ public class ConfigurationValueResolverTestCase extends AbstractMuleTestCase
 
     private ConfigurationValueResolver getConfigResolver() throws Exception
     {
-        return new ConfigurationValueResolver(CONFIG_NAME, extension, configuration, resolverSet, extensionManager, muleContext);
+        return new ConfigurationValueResolver(CONFIG_NAME, configuration, resolverSet, muleContext);
     }
 }

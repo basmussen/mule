@@ -17,7 +17,6 @@ import org.mule.api.NamedObject;
 import org.mule.api.construct.FlowConstruct;
 import org.mule.extension.ExtensionManager;
 import org.mule.extension.introspection.Configuration;
-import org.mule.extension.introspection.Extension;
 import org.mule.module.extension.internal.runtime.ConfigurationObjectBuilder;
 
 /**
@@ -37,6 +36,8 @@ import org.mule.module.extension.internal.runtime.ConfigurationObjectBuilder;
  * point of view. Notice however that the named object is this resolver and in the case of
  * dynamic configurations instances are not likely to be unique
  * <p/>
+ * The generated instance will be registered with the {@code extensionManager}
+ * through {@link ExtensionManager#registerConfigurationInstance(Configuration, String, Object)}
  *
  * @since 3.7.0
  */
@@ -47,10 +48,8 @@ public final class ConfigurationValueResolver implements ValueResolver<Object>, 
     private final ValueResolver delegate;
 
     public ConfigurationValueResolver(String name,
-                                      Extension extension,
                                       Configuration configuration,
                                       ResolverSet resolverSet,
-                                      ExtensionManager extensionManager,
                                       MuleContext muleContext)
     {
         this.name = name;
@@ -59,14 +58,14 @@ public final class ConfigurationValueResolver implements ValueResolver<Object>, 
 
         if (resolverSet.isDynamic())
         {
-            delegate = new DynamicConfigurationValueResolver(name, extension, configuration, configurationObjectBuilder, resolverSet, extensionManager);
+            delegate = new DynamicConfigurationValueResolver(name, configuration, configurationObjectBuilder, resolverSet, muleContext);
         }
         else
         {
             try
             {
                 Object config = configurationObjectBuilder.build(getInitialiserEvent(muleContext));
-                extensionManager.registerConfigurationInstance(extension, configuration, name, config);
+                muleContext.getExtensionManager().registerConfigurationInstance(configuration, name, config);
                 delegate = new StaticValueResolver<>(config);
             }
             catch (MuleException e)

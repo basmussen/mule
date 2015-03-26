@@ -16,10 +16,6 @@ import static org.mockito.Mockito.when;
 import static org.mule.module.extension.HealthStatus.DEAD;
 import static org.mule.module.extension.HeisenbergExtension.HEISENBERG;
 import org.mule.api.MuleEvent;
-import org.mule.api.MuleException;
-import org.mule.api.lifecycle.InitialisationException;
-import org.mule.api.lifecycle.Lifecycle;
-import org.mule.extension.annotations.WithConfig;
 import org.mule.extension.introspection.OperationContext;
 import org.mule.extension.introspection.Parameter;
 import org.mule.module.extension.HeisenbergExtension;
@@ -63,7 +59,7 @@ public class ReflectiveOperationExecutorTestCase extends AbstractMuleTestCase
     public void before()
     {
         initHeisenberg();
-        operationContext = new DefaultOperationContext(config, parameters, muleEvent, null);
+        operationContext = new DefaultOperationContext(parameters, muleEvent, null);
         when(operationContext.getParametersValues()).thenReturn(parameterValues);
     }
 
@@ -71,7 +67,7 @@ public class ReflectiveOperationExecutorTestCase extends AbstractMuleTestCase
     public void operationWithReturnValueAndWithoutParameters() throws Exception
     {
         Method method = ClassUtils.getMethod(HeisenbergOperations.class, "sayMyName", new Class<?>[] {});
-        implementation = new ReflectiveOperationExecutor(HeisenbergOperations.class, method);
+        implementation = new ReflectiveOperationExecutor(HeisenbergOperations.class, method, config, ValueReturnDelegate.INSTANCE);
         assertResult(implementation.execute(operationContext), HEISENBERG);
     }
 
@@ -79,7 +75,7 @@ public class ReflectiveOperationExecutorTestCase extends AbstractMuleTestCase
     public void voidOperationWithoutParameters() throws Exception
     {
         Method method = ClassUtils.getMethod(HeisenbergOperations.class, "die", new Class<?>[] {});
-        implementation = new ReflectiveOperationExecutor(HeisenbergOperations.class, method);
+        implementation = new ReflectiveOperationExecutor(HeisenbergOperations.class, method, config, VoidReturnDelegate.INSTANCE);
         assertSameInstance(implementation.execute(operationContext), muleEvent);
         assertThat(config.getFinalHealth(), is(DEAD));
     }
@@ -88,7 +84,7 @@ public class ReflectiveOperationExecutorTestCase extends AbstractMuleTestCase
     public void withArgumentsAndReturnValue() throws Exception
     {
         Method method = ClassUtils.getMethod(HeisenbergOperations.class, "getEnemy", new Class<?>[] {int.class});
-        implementation = new ReflectiveOperationExecutor(HeisenbergOperations.class, method);
+        implementation = new ReflectiveOperationExecutor(HeisenbergOperations.class, method, config, ValueReturnDelegate.INSTANCE);
         parameterValues.put(mock(Parameter.class), 0);
         assertResult(implementation.execute(operationContext), "Hank");
     }
@@ -98,23 +94,9 @@ public class ReflectiveOperationExecutorTestCase extends AbstractMuleTestCase
     {
         HeisenbergOperations.eventHolder.set(muleEvent);
         Method method = ClassUtils.getMethod(HeisenbergOperations.class, "hideMethInEvent", new Class<?>[] {});
-        implementation = new ReflectiveOperationExecutor(HeisenbergOperations.class, method);
+        implementation = new ReflectiveOperationExecutor(HeisenbergOperations.class, method, config, VoidReturnDelegate.INSTANCE);
         assertSameInstance(implementation.execute(operationContext), muleEvent);
         verify(muleEvent).setFlowVariable("secretPackage", "meth");
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void operationWithTwoConfigs() throws Exception
-    {
-        Method method = ClassUtils.getMethod(HeisenbergOperations.class, "hideMethInEvent", new Class<?>[] {});
-        new ReflectiveOperationExecutor(TwoConfigs.class, method);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void operationWithLifecycle() throws Exception
-    {
-        Method method = ClassUtils.getMethod(HeisenbergOperations.class, "hideMethInEvent", new Class<?>[] {});
-        new ReflectiveOperationExecutor(WithLifecycle.class, method);
     }
 
     private void initHeisenberg()
@@ -135,44 +117,5 @@ public class ReflectiveOperationExecutorTestCase extends AbstractMuleTestCase
     {
         Object value = result.get();
         assertThat(value, is(sameInstance(expected)));
-    }
-
-    public static class TwoConfigs extends HeisenbergOperations
-    {
-
-        @WithConfig
-        private HeisenbergExtension config;
-
-        public TwoConfigs()
-        {
-        }
-    }
-
-    public static class WithLifecycle extends HeisenbergOperations implements Lifecycle
-    {
-
-        @Override
-        public void dispose()
-        {
-
-        }
-
-        @Override
-        public void initialise() throws InitialisationException
-        {
-
-        }
-
-        @Override
-        public void start() throws MuleException
-        {
-
-        }
-
-        @Override
-        public void stop() throws MuleException
-        {
-
-        }
     }
 }

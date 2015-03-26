@@ -16,12 +16,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mule.api.MuleContext;
 import org.mule.api.MuleEvent;
 import org.mule.extension.ExtensionManager;
 import org.mule.extension.introspection.Configuration;
-import org.mule.extension.introspection.Extension;
 import org.mule.module.extension.HeisenbergExtension;
 import org.mule.module.extension.internal.runtime.ConfigurationObjectBuilder;
+import org.mule.module.extension.internal.util.ExtensionsTestUtils;
 import org.mule.tck.junit4.AbstractMuleTestCase;
 import org.mule.tck.size.SmallTest;
 
@@ -42,9 +43,6 @@ public class DynamicConfigurationValueResolverTestCase extends AbstractMuleTestC
     private static final Class MODULE_CLASS = HeisenbergExtension.class;
     private static final String CONFIGURATION_NAME = "heisenberg";
 
-    @Mock
-    private Extension extension;
-
     @Mock(answer = RETURNS_DEEP_STUBS)
     private Configuration configuration;
 
@@ -53,6 +51,9 @@ public class DynamicConfigurationValueResolverTestCase extends AbstractMuleTestC
 
     @Mock(answer = RETURNS_DEEP_STUBS)
     private ResolverSetResult resolverSetResult;
+
+    @Mock(answer = RETURNS_DEEP_STUBS)
+    private MuleContext muleContext;
 
     @Mock
     private MuleEvent event;
@@ -67,6 +68,7 @@ public class DynamicConfigurationValueResolverTestCase extends AbstractMuleTestC
     @Before
     public void before() throws Exception
     {
+        ExtensionsTestUtils.stubRegistryKey(muleContext, CONFIGURATION_NAME);
         when(configuration.getInstantiator().getObjectType()).thenReturn(MODULE_CLASS);
         when(configuration.getInstantiator().newInstance()).thenAnswer(new Answer<Object>()
         {
@@ -79,8 +81,10 @@ public class DynamicConfigurationValueResolverTestCase extends AbstractMuleTestC
         when(configuration.getCapabilities(any(Class.class))).thenReturn(null);
 
         when(resolverSet.resolve(event)).thenReturn(resolverSetResult);
+        when(muleContext.getExtensionManager()).thenReturn(extensionManager);
+
         configurationObjectBuilder = new ConfigurationObjectBuilder(configuration, resolverSet);
-        resolver = new DynamicConfigurationValueResolver(CONFIGURATION_NAME, extension, configuration, configurationObjectBuilder, resolverSet, extensionManager);
+        resolver = new DynamicConfigurationValueResolver(CONFIGURATION_NAME, configuration, configurationObjectBuilder, resolverSet, muleContext);
     }
 
     @Test

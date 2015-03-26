@@ -13,14 +13,11 @@ import org.mule.api.transport.PropertyScope;
 import org.mule.extension.annotations.ImplementationOf;
 import org.mule.extension.annotations.Operation;
 import org.mule.extension.annotations.RestrictedTo;
-import org.mule.extension.annotations.WithConfig;
 import org.mule.extension.annotations.param.Optional;
 import org.mule.extension.annotations.param.Payload;
 import org.mule.util.ValueHolder;
 
 import java.util.List;
-
-import javax.inject.Inject;
 
 @ImplementationOf(HeisenbergExtension.class)
 public class HeisenbergOperations
@@ -32,21 +29,19 @@ public class HeisenbergOperations
     public static ValueHolder<MuleEvent> eventHolder = new ValueHolder<>();
     public static ValueHolder<MuleMessage> messageHolder = new ValueHolder<>();
 
-    @WithConfig
-    private HeisenbergExtension config;
+    private final HeisenbergExtension config;
 
-    @Inject
-    private MuleEvent event;
-
-    @Inject
-    private MuleMessage message;
-
-    public HeisenbergOperations()
+    public HeisenbergOperations(HeisenbergExtension config)
     {
+        this.config = config;
         // remove when injector is in place
         event = eventHolder.get();
         message = messageHolder.get();
     }
+
+    private MuleEvent event;
+
+    private MuleMessage message;
 
     @Operation
     public String sayMyName()

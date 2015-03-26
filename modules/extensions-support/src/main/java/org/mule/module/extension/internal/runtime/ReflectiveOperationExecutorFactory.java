@@ -12,8 +12,16 @@ import org.mule.extension.introspection.declaration.OperationExecutorFactory;
 
 import java.lang.reflect.Method;
 
+/**
+ * An implementation of {@link OperationExecutorFactory} which produces instances
+ * of {@link ReflectiveOperationExecutor}.
+ *
+ * @param <T> the type of the class in which the implementing method is declared
+ * @since 3.7.0
+ */
 public final class ReflectiveOperationExecutorFactory<T> implements OperationExecutorFactory
 {
+
     private final Class<T> implementationClass;
     private final Method operationMethod;
     private final ReturnDelegate returnDelegate;

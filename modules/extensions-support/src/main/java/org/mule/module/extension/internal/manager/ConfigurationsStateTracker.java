@@ -6,43 +6,86 @@
  */
 package org.mule.module.extension.internal.manager;
 
-import static org.mule.util.Preconditions.checkArgument;
+import static org.mule.util.Preconditions.checkState;
 import org.mule.extension.introspection.Configuration;
+import org.mule.extension.introspection.Extension;
 import org.mule.extension.introspection.Operation;
 import org.mule.extension.introspection.OperationExecutor;
 import org.mule.util.CollectionUtils;
-import org.mule.util.Preconditions;
 
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
 import org.apache.commons.collections.Predicate;
 
+/**
+ * A utility class to track state related to registered instances
+ * which are realisations of {@link Configuration} models owned
+ * by registered {@link Extension}s
+ *
+ * @since 3.7.0
+ */
 final class ConfigurationsStateTracker
 {
 
-    private final Multimap<Configuration, ConfigurationInstanceWrapper<?>> configurationInstances = LinkedHashMultimap.create());
+    private final Multimap<Configuration, ConfigurationInstanceWrapper<?>> configurationInstances = LinkedHashMultimap.create();
 
-    <C> void registerInstance(Configuration configuration, final String name, final C configurationInstance)
+    /**
+     * Registers a {@code configurationInstance} which is a realization of a {@link Configuration}
+     * model defined by {@code configuration}
+     *
+     * @param instanceName          the name of the instance
+     * @param configuration         a {@link Configuration}
+     * @param configurationInstance an instance which is compliant with the {@code configuration} model
+     * @param <C>                   the type of the configuration instance
+     */
+    <C> void registerInstance(Configuration configuration, final String instanceName, final C configurationInstance)
     {
-        ConfigurationInstanceWrapper<C> instanceWrapper = new ConfigurationInstanceWrapper<>(name, configurationInstance);
-        synchronized (configurationInstances) {
-            if (configurationInstances.containsValue(instanceWrapper)) {
-                throw new IllegalArgumentException("Can't register the sema configuration instance twice");
+        ConfigurationInstanceWrapper<C> instanceWrapper = new ConfigurationInstanceWrapper<>(instanceName, configurationInstance);
+        synchronized (configurationInstances)
+        {
+            if (configurationInstances.containsValue(instanceWrapper))
+            {
+                throw new IllegalStateException("Can't register the same configuration instance twice");
             }
 
             configurationInstances.put(configuration, instanceWrapper);
         }
     }
 
-    <C> OperationExecutor getOperationExecutor(Operation operation, C configurationInstance) {
+    /**
+     * Returns an {@link OperationExecutor} that was previously registered
+     * through {@link #registerOperationExecutor(Operation, Object, OperationExecutor)}
+     *
+     * @param operation             a {@link Operation} model
+     * @param configurationInstance a previously registered configuration instance
+     * @param <C>                   the type of the configuration instance
+     * @return a {@link OperationExecutor}
+     */
+    <C> OperationExecutor getOperationExecutor(Operation operation, C configurationInstance)
+    {
         ConfigurationInstanceWrapper<C> wrapper = locateConfigurationInstanceWrapper(configurationInstance);
-        checkArgument(wrapper != null, "Can't create an operation executor for an unregistered configuration instance");
         return wrapper.getOperationExecutor(operation);
     }
 
-    private <C> ConfigurationInstanceWrapper<C> locateConfigurationInstanceWrapper(final C configurationInstance) {
-        return (ConfigurationInstanceWrapper<C>) CollectionUtils.find(configurationInstances.values(), new Predicate()
+    /**
+     * Registers a {@link OperationExecutor} for the {@code operation}|{@code configurationInstance}
+     * pair.
+     *
+     * @param operation             a {@link Operation} model
+     * @param configurationInstance a previously registered configuration instance
+     * @param executor              a {@link OperationExecutor}
+     * @param <C>                   the type of the configuration instance
+     */
+    <C> void registerOperationExecutor(Operation operation, C configurationInstance, OperationExecutor executor)
+    {
+        ConfigurationInstanceWrapper<C> wrapper = locateConfigurationInstanceWrapper(configurationInstance);
+        wrapper.registerOperationExecutor(operation, executor);
+    }
+
+    private <C> ConfigurationInstanceWrapper<C> locateConfigurationInstanceWrapper(final C configurationInstance)
+    {
+        ConfigurationInstanceWrapper<C> wrapper = (ConfigurationInstanceWrapper<C>) CollectionUtils.find(configurationInstances.values(), new Predicate()
         {
             @Override
             public boolean evaluate(Object object)
@@ -50,5 +93,8 @@ final class ConfigurationsStateTracker
                 return ((ConfigurationInstanceWrapper<C>) object).getConfigurationInstance() == configurationInstance;
             }
         });
+
+        checkState(wrapper != null, "Can't create an operation executor for an unregistered configuration instance");
+        return wrapper;
     }
 }
