@@ -6,9 +6,11 @@
  */
 package org.mule.module.extension;
 
+import static org.mule.module.extension.HeisenbergExtension.HEISENBERG;
 import org.mule.extension.annotations.ImplementationOf;
 import org.mule.extension.annotations.Operation;
-import org.mule.extension.annotations.Parameters;
+import org.mule.extension.annotations.param.Optional;
+
 
 public class HeisenbergAliasOperations
 {
@@ -22,8 +24,8 @@ public class HeisenbergAliasOperations
 
     @Operation
     @ImplementationOf(HeisenbergExtension.class)
-    public String alias(@Parameters PersonalInfo personalInfo)
+    public String alias(@Optional(defaultValue = HEISENBERG) String alias)
     {
-        return String.format("Hello, my name is %s. I'm %d years old", personalInfo.getMyName(), personalInfo.getAge());
+        return String.format("Hello, my name is %s.", alias);
     }
 }

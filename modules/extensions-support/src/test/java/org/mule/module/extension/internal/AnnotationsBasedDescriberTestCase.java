@@ -78,6 +78,7 @@ public class AnnotationsBasedDescriberTestCase extends AbstractMuleTestCase
     private static final String KILL_MANY = "killMany";
     private static final String KILL_ONE = "killOne";
     private static final String ALIAS = "alias";
+    private static final String INJECTED_EXTENSION_MANAGER = "getInjectedExtensionManager";
 
     private Describer describer;
 
@@ -194,7 +195,7 @@ public class AnnotationsBasedDescriberTestCase extends AbstractMuleTestCase
 
     private void assertTestModuleOperations(Declaration declaration) throws Exception
     {
-        assertThat(declaration.getOperations(), hasSize(10));
+        assertThat(declaration.getOperations(), hasSize(11));
         assertOperation(declaration, SAY_MY_NAME_OPERATION, "");
         assertOperation(declaration, GET_ENEMY_OPERATION, "");
         assertOperation(declaration, KILL_OPERATION, "");
@@ -205,6 +206,7 @@ public class AnnotationsBasedDescriberTestCase extends AbstractMuleTestCase
         assertOperation(declaration, KILL_MANY, "");
         assertOperation(declaration, KILL_ONE, "");
         assertOperation(declaration, ALIAS, "");
+        assertOperation(declaration, INJECTED_EXTENSION_MANAGER, "");
 
         OperationDeclaration operation = getOperation(declaration, SAY_MY_NAME_OPERATION);
         assertThat(operation, is(notNullValue()));
@@ -236,8 +238,11 @@ public class AnnotationsBasedDescriberTestCase extends AbstractMuleTestCase
         assertThat(operation.getParameters().isEmpty(), is(true));
 
         operation = getOperation(declaration, ALIAS);
-        assertParameter(operation.getParameters(), "myName", "", DataType.of(String.class), false, true, HEISENBERG);
-        assertParameter(operation.getParameters(), "age", "", DataType.of(Integer.class), false, true, AGE);
+        assertParameter(operation.getParameters(), "alias", "", DataType.of(String.class), false, true, HEISENBERG);
+
+        operation = getOperation(declaration, INJECTED_EXTENSION_MANAGER);
+        assertThat(operation, is(notNullValue()));
+        assertThat(operation.getParameters().isEmpty(), is(true));
     }
 
     private void assertOperation(Declaration declaration,

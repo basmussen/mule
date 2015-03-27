@@ -17,7 +17,6 @@ import static org.reflections.ReflectionUtils.withParameters;
 import org.mule.api.MuleEvent;
 import org.mule.api.MuleMessage;
 import org.mule.extension.annotations.Extension;
-import org.mule.extension.annotations.Parameters;
 import org.mule.extension.annotations.RestrictedTo;
 import org.mule.extension.annotations.param.Optional;
 import org.mule.extension.annotations.param.Payload;
@@ -77,7 +76,7 @@ public final class MuleExtensionAnnotationParser
 
     static Collection<Field> getGroupParameterFields(Class<?> extensionType)
     {
-        return getAllFields(extensionType, withAnnotation(Parameters.class));
+        return getAllFields(extensionType, withAnnotation(org.mule.extension.annotations.ParameterGroup.class));
     }
 
     static Collection<Method> getOperationMethods(Class<?> declaringClass)

@@ -7,13 +7,9 @@
 package org.mule.module.extension.internal.runtime;
 
 import static org.springframework.util.ReflectionUtils.invokeMethod;
-import org.mule.api.MuleException;
+import org.mule.extension.introspection.Parameter;
 import org.mule.extension.runtime.OperationContext;
 import org.mule.extension.runtime.OperationExecutor;
-import org.mule.extension.introspection.Parameter;
-import org.mule.module.extension.internal.capability.metadata.ImplicitArgumentCapability;
-import org.mule.module.extension.internal.runtime.resolver.ResolverSetResult;
-import org.mule.module.extension.internal.util.ValueSetter;
 
 import com.google.common.util.concurrent.Futures;
 
@@ -22,8 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
-
-import org.apache.commons.collections.CollectionUtils;
 
 /**
  * Implementation of {@link OperationExecutor} which relies on a
@@ -66,30 +60,13 @@ final class ReflectiveMethodOperationExecutor<D> implements DelegatingOperationE
 
     private Object[] getParameterValues(OperationContext operationContext)
     {
-        //TODO: move logic of setInstanceLevenParameterGroups here
         Map<Parameter, Object> parameters = operationContext.getParametersValues();
         List<Object> values = new ArrayList<>(parameters.size());
         for (Map.Entry<Parameter, Object> parameter : parameters.entrySet())
         {
-            if (!parameter.getKey().isCapableOf(ImplicitArgumentCapability.class))
-            {
-                values.add(parameter.getValue());
-            }
+            values.add(parameter.getValue());
         }
 
         return values.toArray();
-    }
-
-    private void setInstanceLevelParameterGroups(Object instance, OperationContext context) throws MuleException
-    {
-        List<ValueSetter> groupSetters = ((DefaultOperationContext) context).getGroupValueSetters();
-        if (!CollectionUtils.isEmpty(groupSetters))
-        {
-            ResolverSetResult resolverSetResult = ((DefaultOperationContext) context).getParameters();
-            for (ValueSetter setter : groupSetters)
-            {
-                setter.set(instance, resolverSetResult);
-            }
-        }
     }
 }

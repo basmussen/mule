@@ -256,6 +256,7 @@ public class DefaultExtensionManagerTestCase extends AbstractMuleTestCase
 
         Object configurationInstance = new Object();
         extensionsManager.registerConfigurationInstance(extension1Configuration, EXTENSION1_CONFIG_INSTANCE_NAME, configurationInstance);
+        extensionsManager.initialise();
         assertRegisteredWithUniqueMadeKey(muleContext, EXTENSION1_CONFIG_INSTANCE_NAME, configurationInstance);
     }
 

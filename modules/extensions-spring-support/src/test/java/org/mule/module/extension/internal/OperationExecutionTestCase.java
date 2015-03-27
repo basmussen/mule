@@ -8,11 +8,13 @@ package org.mule.module.extension.internal;
 
 import static org.apache.commons.lang.StringUtils.EMPTY;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.mule.module.extension.HealthStatus.DEAD;
 import org.mule.api.MuleEvent;
 import org.mule.api.MuleException;
 import org.mule.api.MuleMessage;
+import org.mule.extension.ExtensionManager;
 import org.mule.module.extension.HeisenbergExtension;
 import org.mule.module.extension.HeisenbergOperations;
 import org.mule.module.extension.internal.runtime.resolver.ValueResolver;
@@ -138,11 +140,18 @@ public class OperationExecutionTestCase extends ExtensionsFunctionalTestCase
     }
 
     @Test
-    public void operationWithParameterGroups() throws Exception
+    public void operationDefinedOnItsOwnClass() throws Exception
     {
         MuleEvent event = runFlow("alias");
-        String expected = "Hello, my name is Walter White. I'm 53 years old";
+        String expected = "Hello, my name is Walter White.";
         assertThat(expected, is(event.getMessageAsString()));
+    }
+
+    @Test
+    public void getInjectedDependency() throws Exception
+    {
+        ExtensionManager extensionManager = (ExtensionManager) runFlow("injectedExtensionManager").getMessage().getPayload();
+        assertThat(extensionManager, is(sameInstance(muleContext.getExtensionManager())));
     }
 
     private void assertKillPayload(MuleEvent event) throws MuleException

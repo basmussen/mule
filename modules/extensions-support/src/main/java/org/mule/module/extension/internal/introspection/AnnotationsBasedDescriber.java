@@ -33,7 +33,6 @@ import org.mule.extension.introspection.declaration.ParameterDeclaration;
 import org.mule.extension.introspection.declaration.WithParameters;
 import org.mule.module.extension.internal.capability.metadata.HiddenCapability;
 import org.mule.module.extension.internal.capability.metadata.ImplementedTypeCapability;
-import org.mule.module.extension.internal.capability.metadata.ImplicitArgumentCapability;
 import org.mule.module.extension.internal.capability.metadata.ParameterGroupCapability;
 import org.mule.module.extension.internal.capability.metadata.TypeRestrictionCapability;
 import org.mule.module.extension.internal.runtime.ReflectiveDelegateFactory;
@@ -221,7 +220,7 @@ public final class AnnotationsBasedDescriber implements Describer
             OperationConstruct operation = declaration.withOperation(method.getName())
                     .executorsCreatedBy(new ReflectiveOperationExecutorFactory<>(actingClass, method, delegateFactory));
 
-            declareOperationParameters(actingClass, method, operation);
+            declareOperationParameters(method, operation);
 
             calculateImplementedTypes(actingClass, method, operation);
         }
@@ -241,47 +240,7 @@ public final class AnnotationsBasedDescriber implements Describer
         }
     }
 
-    private void declareOperationParameters(Class<?> actingClass, Method method, OperationConstruct operation)
-    {
-        declareSingleOperationParameters(method, operation);
-        List<ParameterGroup> groups = declareOperationParameterGroups(actingClass, operation);
-        if (!CollectionUtils.isEmpty(groups))
-        {
-            operation.withCapability(new ParameterGroupCapability(groups));
-        }
-    }
-
-    private List<ParameterGroup> declareOperationParameterGroups(Class<?> actingClass, OperationConstruct operation)
-    {
-        List<ParameterGroup> groups = new LinkedList<>();
-        for (Field field : getGroupParameterFields(actingClass))
-        {
-            Set<ParameterConstruct> parameters = declareSingleParameters(field.getType(), operation.with());
-
-            if (!parameters.isEmpty())
-            {
-                ParameterGroup group = new ParameterGroup(field.getType(), getSetter(actingClass, field.getName(), field.getType()));
-                groups.add(group);
-
-                for (ParameterConstruct construct : parameters)
-                {
-                    construct.withCapability(new ImplicitArgumentCapability());
-                    ParameterDeclaration parameter = construct.getDeclaration();
-                    group.addParameter(construct.getDeclaration().getName(), getSetter(field.getType(), parameter.getName(), parameter.getType().getRawType()));
-                }
-
-                List<ParameterGroup> childGroups = declareOperationParameterGroups(field.getType(), operation);
-                if (!CollectionUtils.isEmpty(childGroups))
-                {
-                    group.addCapability(new ParameterGroupCapability(childGroups));
-                }
-            }
-        }
-
-        return groups;
-    }
-
-    private void declareSingleOperationParameters(Method method, OperationConstruct operation)
+    private void declareOperationParameters(Method method, OperationConstruct operation)
     {
         List<ParameterDescriptor> descriptors = MuleExtensionAnnotationParser.parseParameters(method);
 
@@ -296,6 +255,7 @@ public final class AnnotationsBasedDescriber implements Describer
             hideIfNecessary(parameterDescriptor, parameter);
             addTypeRestrictions(parameter, parameterDescriptor);
         }
+
     }
 
     private void hideIfNecessary(ParameterDescriptor parameterDescriptor, ParameterConstruct parameter)

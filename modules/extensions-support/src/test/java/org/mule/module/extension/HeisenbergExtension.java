@@ -16,7 +16,7 @@ import org.mule.extension.annotations.Extensible;
 import org.mule.extension.annotations.Extension;
 import org.mule.extension.annotations.Operations;
 import org.mule.extension.annotations.Parameter;
-import org.mule.extension.annotations.Parameters;
+import org.mule.extension.annotations.ParameterGroup;
 import org.mule.extension.annotations.capability.Xml;
 import org.mule.extension.annotations.param.Optional;
 
@@ -55,7 +55,7 @@ public class HeisenbergExtension implements Lifecycle, MuleContextAware
     @Inject
     private ExtensionManager extensionManager;
 
-    @Parameters
+    @ParameterGroup
     private ExtendedPersonalInfo personalInfo = new ExtendedPersonalInfo();
 
     @Parameter

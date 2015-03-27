@@ -10,6 +10,7 @@ import org.mule.api.MuleEvent;
 import org.mule.api.MuleMessage;
 import org.mule.api.NestedProcessor;
 import org.mule.api.transport.PropertyScope;
+import org.mule.extension.ExtensionManager;
 import org.mule.extension.annotations.ImplementationOf;
 import org.mule.extension.annotations.Operation;
 import org.mule.extension.annotations.RestrictedTo;
@@ -18,6 +19,8 @@ import org.mule.extension.annotations.param.Payload;
 import org.mule.util.ValueHolder;
 
 import java.util.List;
+
+import javax.inject.Inject;
 
 @ImplementationOf(HeisenbergExtension.class)
 public class HeisenbergOperations
@@ -38,6 +41,9 @@ public class HeisenbergOperations
         event = eventHolder.get();
         message = messageHolder.get();
     }
+
+    @Inject
+    private ExtensionManager extensionManager;
 
     private MuleEvent event;
 
@@ -92,6 +98,12 @@ public class HeisenbergOperations
         builder.append(killOperation.process()).append("\n");
 
         return builder.toString();
+    }
+
+    @Operation
+    public ExtensionManager getInjectedExtensionManager()
+    {
+        return extensionManager;
     }
 
     @Operation
