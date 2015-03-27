@@ -23,7 +23,7 @@ import org.mule.api.MuleContext;
 import org.mule.extension.introspection.Configuration;
 import org.mule.extension.introspection.Extension;
 import org.mule.extension.introspection.Operation;
-import org.mule.extension.introspection.OperationExecutor;
+import org.mule.extension.runtime.OperationExecutor;
 import org.mule.extension.introspection.capability.XmlCapability;
 import org.mule.module.extension.internal.introspection.ExtensionDiscoverer;
 import org.mule.module.extension.internal.runtime.DelegatingOperationExecutor;
@@ -259,13 +259,6 @@ public class DefaultExtensionManagerTestCase extends AbstractMuleTestCase
         assertRegisteredWithUniqueMadeKey(muleContext, EXTENSION1_CONFIG_INSTANCE_NAME, configurationInstance);
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void registerConfigurationInstanceTwice() throws Exception
-    {
-        registerConfigurationInstance();
-        extensionsManager.registerConfigurationInstance(extension1Configuration, EXTENSION1_CONFIG_INSTANCE_NAME, new Object());
-    }
-
     @Test
     public void getOperationExecutor() throws Exception
     {
@@ -278,7 +271,7 @@ public class DefaultExtensionManagerTestCase extends AbstractMuleTestCase
         DelegatingOperationExecutor executor = mock(DelegatingOperationExecutor.class);
         when(executor.getExecutorDelegate()).thenReturn(executorDelegate);
 
-        when(extension1Operation.createExecutor(configInstance)).thenReturn(executor);
+        when(extension1Operation.getExecutor(configInstance)).thenReturn(executor);
         OperationExecutor managedExecutor = extensionsManager.getOperationExecutor(extension1Operation, configInstance);
         assertThat(managedExecutor, is(sameInstance((OperationExecutor) executor)));
 
@@ -287,7 +280,7 @@ public class DefaultExtensionManagerTestCase extends AbstractMuleTestCase
         assertThat(managedExecutor, is(sameInstance((OperationExecutor) executor)));
 
         verify(muleContext.getRegistry()).registerObject(anyString(), same(executorDelegate));
-        verify(extension1Operation.createExecutor(configInstance));
+        verify(extension1Operation.getExecutor(configInstance));
     }
 
     @Test(expected = IllegalStateException.class)

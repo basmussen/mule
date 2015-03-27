@@ -9,7 +9,7 @@ package org.mule.module.extension.internal.introspection;
 import static org.mule.module.extension.internal.util.MuleExtensionUtils.immutableList;
 import static org.mule.util.Preconditions.checkArgument;
 import org.mule.extension.introspection.Operation;
-import org.mule.extension.introspection.OperationExecutor;
+import org.mule.extension.runtime.OperationExecutor;
 import org.mule.extension.introspection.Parameter;
 import org.mule.extension.introspection.declaration.OperationExecutorFactory;
 
@@ -53,8 +53,8 @@ final class ImmutableOperation extends AbstractImmutableCapableDescribed impleme
      * {@inheritDoc}
      */
     @Override
-    public <T> OperationExecutor createExecutor(T configurationInstance)
+    public <T> OperationExecutor getExecutor(T configurationInstance)
     {
-        return executorFactory.createExecutor(configurationInstance);
+        return executorFactory.getExecutor(configurationInstance);
     }
 }

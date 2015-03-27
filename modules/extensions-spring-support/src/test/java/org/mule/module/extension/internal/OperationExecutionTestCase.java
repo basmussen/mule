@@ -13,16 +13,14 @@ import static org.mule.module.extension.HealthStatus.DEAD;
 import org.mule.api.MuleEvent;
 import org.mule.api.MuleException;
 import org.mule.api.MuleMessage;
-import org.mule.extension.introspection.Describer;
 import org.mule.module.extension.HeisenbergExtension;
 import org.mule.module.extension.HeisenbergOperations;
-import org.mule.module.extension.internal.introspection.AnnotationsBasedDescriber;
 import org.mule.module.extension.internal.runtime.resolver.ValueResolver;
 import org.mule.tck.junit4.ExtensionsFunctionalTestCase;
 
 import org.junit.Test;
 
-public class OperationParserTestCase extends ExtensionsFunctionalTestCase
+public class OperationExecutionTestCase extends ExtensionsFunctionalTestCase
 {
 
     private static final String GUSTAVO_FRING = "Gustavo Fring";
@@ -32,9 +30,9 @@ public class OperationParserTestCase extends ExtensionsFunctionalTestCase
     private static final String VICTIM = "Skyler";
 
     @Override
-    protected Describer[] getManagedDescribers()
+    protected Class<?>[] getAnnotatedExtensionClasses()
     {
-        return new Describer[] {new AnnotationsBasedDescriber(HeisenbergExtension.class)};
+        return new Class<?>[] {HeisenbergExtension.class};
     }
 
     @Override

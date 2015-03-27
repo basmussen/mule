@@ -6,7 +6,7 @@
  */
 package org.mule.module.extension.internal.runtime;
 
-import org.mule.extension.introspection.OperationContext;
+import org.mule.extension.runtime.OperationContext;
 
 /**
  * Simple implementation of {@link ReturnDelegate} which simply returns

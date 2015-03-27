@@ -10,7 +10,7 @@ import static java.lang.String.format;
 import static org.mule.util.Preconditions.checkArgument;
 import org.mule.extension.introspection.Configuration;
 import org.mule.extension.introspection.Operation;
-import org.mule.extension.introspection.OperationExecutor;
+import org.mule.extension.runtime.OperationExecutor;
 import org.mule.util.StringUtils;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,12 +19,20 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * A wrapper class to hold an instance which is a realisation of a
  * {@link Configuration} model and state associated to it, such as its
- * {@link OperationExecutor}s, registration name, etc
+ * {@link OperationExecutor}s, registration name, etc.
+ * <p/>
+ * This class is also useful to use a {@link #configurationInstance} in hash-based
+ * data structures without directly depending on its {@link #equals(Object)} or
+ * {@link #hashCode()} implementations which we cannot control. Thus, this
+ * class redefines such methods so that two instances are consider to be equal
+ * if they refer to the same {@link #configurationInstance} and so that this
+ * instance's hash is the {@link System#identityHashCode(Object)} of the
+ * {@link #configurationInstance}
  *
  * @param <C> the type of the configuration instance
  * @since 3.7.0
  */
-final class ConfigurationInstanceWrapper<C>
+public final class ConfigurationInstanceWrapper<C>
 {
 
     private final String name;
@@ -79,26 +87,20 @@ final class ConfigurationInstanceWrapper<C>
         return name;
     }
 
-    /**
-     * Redefined to work in terms of the {@link #name} property
-     */
     @Override
     public boolean equals(Object obj)
     {
         if (obj instanceof ConfigurationInstanceWrapper)
         {
-            return name.equals(((ConfigurationInstanceWrapper) obj).getName());
+            return configurationInstance == ((ConfigurationInstanceWrapper) obj).configurationInstance;
         }
 
         return false;
     }
 
-    /**
-     * Redefined to work in terms of the {@link #name} property
-     */
     @Override
     public int hashCode()
     {
-        return name.hashCode();
+        return System.identityHashCode(configurationInstance);
     }
 }

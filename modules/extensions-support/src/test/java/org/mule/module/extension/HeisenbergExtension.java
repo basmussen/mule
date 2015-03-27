@@ -11,6 +11,7 @@ import org.mule.api.MuleException;
 import org.mule.api.context.MuleContextAware;
 import org.mule.api.lifecycle.InitialisationException;
 import org.mule.api.lifecycle.Lifecycle;
+import org.mule.extension.ExtensionManager;
 import org.mule.extension.annotations.Extensible;
 import org.mule.extension.annotations.Extension;
 import org.mule.extension.annotations.Operations;
@@ -24,6 +25,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import javax.inject.Inject;
 
 @Extension(name = HeisenbergExtension.EXTENSION_NAME, description = HeisenbergExtension.EXTENSION_DESCRIPTION, version = HeisenbergExtension.EXTENSION_VERSION)
 @Operations({HeisenbergOperations.class, HeisenbergAliasOperations.class})
@@ -48,6 +51,9 @@ public class HeisenbergExtension implements Lifecycle, MuleContextAware
     private int dispose = 0;
 
     private MuleContext muleContext;
+
+    @Inject
+    private ExtensionManager extensionManager;
 
     @Parameters
     private ExtendedPersonalInfo personalInfo = new ExtendedPersonalInfo();
@@ -108,6 +114,11 @@ public class HeisenbergExtension implements Lifecycle, MuleContextAware
     public void dispose()
     {
         dispose++;
+    }
+
+    public ExtensionManager getExtensionManager()
+    {
+        return extensionManager;
     }
 
     public List<String> getEnemies()

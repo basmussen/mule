@@ -36,6 +36,7 @@ import org.mule.module.extension.internal.capability.metadata.ImplementedTypeCap
 import org.mule.module.extension.internal.capability.metadata.ImplicitArgumentCapability;
 import org.mule.module.extension.internal.capability.metadata.ParameterGroupCapability;
 import org.mule.module.extension.internal.capability.metadata.TypeRestrictionCapability;
+import org.mule.module.extension.internal.runtime.ReflectiveDelegateFactory;
 import org.mule.module.extension.internal.runtime.ReflectiveOperationExecutorFactory;
 import org.mule.module.extension.internal.util.IntrospectionUtils;
 import org.mule.util.CollectionUtils;
@@ -59,6 +60,7 @@ public final class AnnotationsBasedDescriber implements Describer
 
     private CapabilitiesResolver capabilitiesResolver = new DefaultCapabilitiesResolver(new SPIServiceRegistry());
     private final Class<?> extensionType;
+    private final ReflectiveDelegateFactory delegateFactory = new ReflectiveDelegateFactory();
 
     public AnnotationsBasedDescriber(Class<?> extensionType)
     {
@@ -217,7 +219,7 @@ public final class AnnotationsBasedDescriber implements Describer
         for (Method method : getOperationMethods(actingClass))
         {
             OperationConstruct operation = declaration.withOperation(method.getName())
-                    .executorsCreatedBy(new ReflectiveOperationExecutorFactory<>(actingClass, method));
+                    .executorsCreatedBy(new ReflectiveOperationExecutorFactory<>(actingClass, method, delegateFactory));
 
             declareOperationParameters(actingClass, method, operation);
 
@@ -281,7 +283,7 @@ public final class AnnotationsBasedDescriber implements Describer
 
     private void declareSingleOperationParameters(Method method, OperationConstruct operation)
     {
-        List<ParameterDescriptor> descriptors = MuleExtensionAnnotationParser.parseParameter(method);
+        List<ParameterDescriptor> descriptors = MuleExtensionAnnotationParser.parseParameters(method);
 
         for (ParameterDescriptor parameterDescriptor : descriptors)
         {

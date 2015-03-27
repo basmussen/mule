@@ -16,7 +16,7 @@ import static org.mockito.Mockito.when;
 import static org.mule.module.extension.HealthStatus.DEAD;
 import static org.mule.module.extension.HeisenbergExtension.HEISENBERG;
 import org.mule.api.MuleEvent;
-import org.mule.extension.introspection.OperationContext;
+import org.mule.extension.runtime.OperationContext;
 import org.mule.extension.introspection.Parameter;
 import org.mule.module.extension.HeisenbergExtension;
 import org.mule.module.extension.HeisenbergOperations;
@@ -39,7 +39,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 @SmallTest
 @RunWith(MockitoJUnitRunner.class)
-public class ReflectiveOperationExecutorTestCase extends AbstractMuleTestCase
+public class ReflectiveMethodOperationExecutorTestCase extends AbstractMuleTestCase
 {
 
     @Mock(answer = RETURNS_DEEP_STUBS)
@@ -50,9 +50,10 @@ public class ReflectiveOperationExecutorTestCase extends AbstractMuleTestCase
 
     private Map<Parameter, Object> parameterValues = new HashMap<>();
 
-    private ReflectiveOperationExecutor implementation;
+    private ReflectiveMethodOperationExecutor executor;
     private HeisenbergExtension config;
     private OperationContext operationContext;
+    private HeisenbergOperations operations;
 
 
     @Before
@@ -67,16 +68,16 @@ public class ReflectiveOperationExecutorTestCase extends AbstractMuleTestCase
     public void operationWithReturnValueAndWithoutParameters() throws Exception
     {
         Method method = ClassUtils.getMethod(HeisenbergOperations.class, "sayMyName", new Class<?>[] {});
-        implementation = new ReflectiveOperationExecutor(HeisenbergOperations.class, method, config, ValueReturnDelegate.INSTANCE);
-        assertResult(implementation.execute(operationContext), HEISENBERG);
+        executor = new ReflectiveMethodOperationExecutor(method, operations, ValueReturnDelegate.INSTANCE);
+        assertResult(executor.execute(operationContext), HEISENBERG);
     }
 
     @Test
     public void voidOperationWithoutParameters() throws Exception
     {
         Method method = ClassUtils.getMethod(HeisenbergOperations.class, "die", new Class<?>[] {});
-        implementation = new ReflectiveOperationExecutor(HeisenbergOperations.class, method, config, VoidReturnDelegate.INSTANCE);
-        assertSameInstance(implementation.execute(operationContext), muleEvent);
+        executor = new ReflectiveMethodOperationExecutor(method, operations, VoidReturnDelegate.INSTANCE);
+        assertSameInstance(executor.execute(operationContext), muleEvent);
         assertThat(config.getFinalHealth(), is(DEAD));
     }
 
@@ -84,18 +85,17 @@ public class ReflectiveOperationExecutorTestCase extends AbstractMuleTestCase
     public void withArgumentsAndReturnValue() throws Exception
     {
         Method method = ClassUtils.getMethod(HeisenbergOperations.class, "getEnemy", new Class<?>[] {int.class});
-        implementation = new ReflectiveOperationExecutor(HeisenbergOperations.class, method, config, ValueReturnDelegate.INSTANCE);
+        executor = new ReflectiveMethodOperationExecutor(method, operations, ValueReturnDelegate.INSTANCE);
         parameterValues.put(mock(Parameter.class), 0);
-        assertResult(implementation.execute(operationContext), "Hank");
+        assertResult(executor.execute(operationContext), "Hank");
     }
 
     @Test
     public void voidWithArguments() throws Exception
     {
-        HeisenbergOperations.eventHolder.set(muleEvent);
         Method method = ClassUtils.getMethod(HeisenbergOperations.class, "hideMethInEvent", new Class<?>[] {});
-        implementation = new ReflectiveOperationExecutor(HeisenbergOperations.class, method, config, VoidReturnDelegate.INSTANCE);
-        assertSameInstance(implementation.execute(operationContext), muleEvent);
+        executor = new ReflectiveMethodOperationExecutor(method, operations, VoidReturnDelegate.INSTANCE);
+        assertSameInstance(executor.execute(operationContext), muleEvent);
         verify(muleEvent).setFlowVariable("secretPackage", "meth");
     }
 
@@ -105,6 +105,7 @@ public class ReflectiveOperationExecutorTestCase extends AbstractMuleTestCase
         config.getPersonalInfo().setMyName(HEISENBERG);
         config.setEnemies(Arrays.asList("Hank"));
         HeisenbergOperations.eventHolder.set(muleEvent);
+        operations = new HeisenbergOperations(config);
     }
 
     private void assertResult(Future<Object> result, Object expected) throws Exception

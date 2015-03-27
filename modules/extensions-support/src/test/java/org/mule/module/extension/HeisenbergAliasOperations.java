@@ -13,23 +13,17 @@ import org.mule.extension.annotations.Parameters;
 public class HeisenbergAliasOperations
 {
 
-    @Parameters
-    private PersonalInfo personalInfo;
+    private final HeisenbergExtension config;
+
+    public HeisenbergAliasOperations(HeisenbergExtension config)
+    {
+        this.config = config;
+    }
 
     @Operation
     @ImplementationOf(HeisenbergExtension.class)
-    public String alias()
+    public String alias(@Parameters PersonalInfo personalInfo)
     {
         return String.format("Hello, my name is %s. I'm %d years old", personalInfo.getMyName(), personalInfo.getAge());
-    }
-
-    public PersonalInfo getPersonalInfo()
-    {
-        return personalInfo;
-    }
-
-    public void setPersonalInfo(PersonalInfo personalInfo)
-    {
-        this.personalInfo = personalInfo;
     }
 }

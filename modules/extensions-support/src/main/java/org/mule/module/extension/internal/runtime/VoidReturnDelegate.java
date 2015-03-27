@@ -7,7 +7,7 @@
 package org.mule.module.extension.internal.runtime;
 
 import org.mule.api.MuleEvent;
-import org.mule.extension.introspection.OperationContext;
+import org.mule.extension.runtime.OperationContext;
 
 /**
  * An implementation of {@link ReturnDelegate} intended

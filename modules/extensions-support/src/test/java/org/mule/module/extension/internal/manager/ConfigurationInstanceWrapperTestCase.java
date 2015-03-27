@@ -14,7 +14,7 @@ import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import org.mule.extension.introspection.Operation;
-import org.mule.extension.introspection.OperationExecutor;
+import org.mule.extension.runtime.OperationExecutor;
 import org.mule.tck.junit4.AbstractMuleTestCase;
 import org.mule.tck.size.SmallTest;
 
@@ -40,21 +40,21 @@ public class ConfigurationInstanceWrapperTestCase extends AbstractMuleTestCase
     @Test
     public void testEquals()
     {
-        ConfigurationInstanceWrapper<Object> other = new ConfigurationInstanceWrapper<>(NAME, new Object());
+        ConfigurationInstanceWrapper<Object> other = new ConfigurationInstanceWrapper<>("hello", configurationInstance);
         assertThat(instanceWrapper, equalTo(other));
     }
 
     @Test
     public void testNotEquals()
     {
-        ConfigurationInstanceWrapper<Object> other = new ConfigurationInstanceWrapper<>("hello", configurationInstance);
+        ConfigurationInstanceWrapper<Object> other = new ConfigurationInstanceWrapper<>(NAME, new Object());
         assertThat(instanceWrapper, not(equalTo(other)));
     }
 
     @Test
     public void testHashCode()
     {
-        assertThat(instanceWrapper.hashCode(), is(NAME.hashCode()));
+        assertThat(instanceWrapper.hashCode(), is(configurationInstance.hashCode()));
     }
 
     @Test(expected = IllegalArgumentException.class)

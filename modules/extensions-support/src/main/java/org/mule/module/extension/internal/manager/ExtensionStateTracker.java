@@ -9,7 +9,9 @@ package org.mule.module.extension.internal.manager;
 import org.mule.extension.introspection.Configuration;
 import org.mule.extension.introspection.Extension;
 import org.mule.extension.introspection.Operation;
-import org.mule.extension.introspection.OperationExecutor;
+import org.mule.extension.runtime.OperationExecutor;
+
+import com.google.common.collect.Multimap;
 
 /**
  * Holds state regarding the use that the platform is doing of a
@@ -34,6 +36,11 @@ final class ExtensionStateTracker
     <C> void registerConfigurationInstance(String instanceName, Configuration configuration, C configurationInstance)
     {
         configurationsState.registerInstance(configuration, instanceName, configurationInstance);
+    }
+
+    Multimap<Configuration, ConfigurationInstanceWrapper<?>> getConfigurationInstances()
+    {
+        return configurationsState.getConfigurationInstances();
     }
 
     /**

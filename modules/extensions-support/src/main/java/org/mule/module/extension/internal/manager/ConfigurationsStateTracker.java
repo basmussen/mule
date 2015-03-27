@@ -10,11 +10,13 @@ import static org.mule.util.Preconditions.checkState;
 import org.mule.extension.introspection.Configuration;
 import org.mule.extension.introspection.Extension;
 import org.mule.extension.introspection.Operation;
-import org.mule.extension.introspection.OperationExecutor;
+import org.mule.extension.runtime.OperationExecutor;
 import org.mule.util.CollectionUtils;
 
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 
 import org.apache.commons.collections.Predicate;
 
@@ -28,29 +30,12 @@ import org.apache.commons.collections.Predicate;
 final class ConfigurationsStateTracker
 {
 
-    private final Multimap<Configuration, ConfigurationInstanceWrapper<?>> configurationInstances = LinkedHashMultimap.create();
+    private final Multimap<Configuration, ConfigurationInstanceWrapper<?>> configurationInstances =
+            Multimaps.synchronizedSetMultimap(LinkedHashMultimap.<Configuration, ConfigurationInstanceWrapper<?>>create());
 
-    /**
-     * Registers a {@code configurationInstance} which is a realization of a {@link Configuration}
-     * model defined by {@code configuration}
-     *
-     * @param instanceName          the name of the instance
-     * @param configuration         a {@link Configuration}
-     * @param configurationInstance an instance which is compliant with the {@code configuration} model
-     * @param <C>                   the type of the configuration instance
-     */
     <C> void registerInstance(Configuration configuration, final String instanceName, final C configurationInstance)
     {
-        ConfigurationInstanceWrapper<C> instanceWrapper = new ConfigurationInstanceWrapper<>(instanceName, configurationInstance);
-        synchronized (configurationInstances)
-        {
-            if (configurationInstances.containsValue(instanceWrapper))
-            {
-                throw new IllegalStateException("Can't register the same configuration instance twice");
-            }
-
-            configurationInstances.put(configuration, instanceWrapper);
-        }
+        configurationInstances.put(configuration, new ConfigurationInstanceWrapper<>(instanceName, configurationInstance));
     }
 
     /**
@@ -81,6 +66,11 @@ final class ConfigurationsStateTracker
     {
         ConfigurationInstanceWrapper<C> wrapper = locateConfigurationInstanceWrapper(configurationInstance);
         wrapper.registerOperationExecutor(operation, executor);
+    }
+
+    Multimap<Configuration, ConfigurationInstanceWrapper<?>> getConfigurationInstances()
+    {
+        return ImmutableMultimap.copyOf(configurationInstances);
     }
 
     private <C> ConfigurationInstanceWrapper<C> locateConfigurationInstanceWrapper(final C configurationInstance)

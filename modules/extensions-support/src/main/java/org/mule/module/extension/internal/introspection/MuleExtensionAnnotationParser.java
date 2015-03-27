@@ -114,7 +114,7 @@ public final class MuleExtensionAnnotationParser
         return methods.iterator().next();
     }
 
-    static List<ParameterDescriptor> parseParameter(Method method)
+    static List<ParameterDescriptor> parseParameters(Method method)
     {
         String[] paramNames = getParamNames(method);
 

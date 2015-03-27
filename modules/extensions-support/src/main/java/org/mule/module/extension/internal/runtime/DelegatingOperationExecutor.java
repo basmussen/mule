@@ -6,7 +6,7 @@
  */
 package org.mule.module.extension.internal.runtime;
 
-import org.mule.extension.introspection.OperationExecutor;
+import org.mule.extension.runtime.OperationExecutor;
 
 /**
  * An adapter interface for an {@link OperationExecutor} which
